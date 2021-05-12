@@ -20,7 +20,7 @@ import WebAudio.Property as AudioAttr
 main : Program () Model Msg
 main =
     AudioProgram.document
-        { init = \_ -> ( initialModel, generateSong )
+        { init = \_ -> init
         , update = update
         , subscriptions = subscriptions
         , view = view
@@ -45,6 +45,7 @@ type alias Song =
     { tones : List Tone
     , duration : Int
     , name : String
+    , seed : Int
     }
 
 
@@ -61,37 +62,42 @@ type alias Tone =
     }
 
 
-initialModel : Model
-initialModel =
-    { song = { tones = [], duration = 0, name = "" }
-    , playing = Stopped
-    , time = 0
-    }
+init : ( Model, Cmd Msg )
+init =
+    let
+        seedOfFirstSong =
+            0
+
+        firstSong =
+            generateSong seedOfFirstSong
+    in
+    ( { song = firstSong
+      , playing = Stopped
+      , time = 0
+      }
+    , Cmd.none
+    )
 
 
 type Msg
     = GenerateNewSong
-    | UseGeneratedSong Song
     | Stop
     | Play
     | ToTime Int
+    | UseSeed Int
+    | NoOp
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        NoOp ->
+            ( model, Cmd.none )
+
         GenerateNewSong ->
             ( model
-            , generateSong
-            )
-
-        UseGeneratedSong song ->
-            ( { model
-                | playing = Playing
-                , song = song
-                , time = 0
-              }
-            , Cmd.none
+            , Random.int Random.minInt Random.maxInt
+                |> Random.generate UseSeed
             )
 
         Stop ->
@@ -106,6 +112,15 @@ update msg model =
 
         ToTime newTime ->
             ( { model | time = newTime }
+            , Cmd.none
+            )
+
+        UseSeed seed ->
+            ( { model
+                | song = generateSong seed
+                , time = 0
+                , playing = Playing
+              }
             , Cmd.none
             )
 
@@ -135,8 +150,8 @@ type WordGroup
     | Other
 
 
-generateSong : Cmd Msg
-generateSong =
+generateSong : Int -> Song
+generateSong seed =
     let
         randomWord : Random.Generator String
         randomWord =
@@ -170,6 +185,7 @@ generateSong =
                         { duration = songSeconds * 1000
                         , tones = tones
                         , name = name
+                        , seed = seed
                         }
                     )
                     (Random.list (songSeconds * 2)
@@ -194,7 +210,11 @@ generateSong =
                         |> Random.map (String.join " ")
                     )
             )
-        |> Random.generate UseGeneratedSong
+        |> (\generator ->
+                Random.step generator
+                    (Random.initialSeed seed)
+                    |> Tuple.first
+           )
 
 
 view : Model -> Browser.Document Msg
@@ -234,15 +254,46 @@ ui model =
             , Ui.padding 20
             ]
             (Ui.text "audize")
-        , UiInput.button
-            [ UiBackground.color (Ui.rgba 0 0 0 0)
-            , Ui.centerX
+        , Ui.row
+            [ Ui.centerX
             , Ui.centerY
             ]
-            { onPress = Just GenerateNewSong
-            , label =
-                Ui.text "↻" |> Ui.el [ UiFont.size 80 ] |> input
-            }
+            [ UiInput.button
+                [ UiBackground.color (Ui.rgba 0 0 0 0)
+                , Ui.centerX
+                , Ui.centerY
+                ]
+                { onPress = Just GenerateNewSong
+                , label =
+                    Ui.text "↻" |> Ui.el [ UiFont.size 80 ] |> input
+                }
+            , Ui.column [ Ui.width Ui.fill ]
+                [ UiInput.text
+                    [ UiFont.size 20
+                    , UiFont.color (Ui.rgba 1 1 1 0.6)
+                    , UiBackground.color (Ui.rgba 0 0 0 0)
+                    , UiBorder.color (Ui.rgba 0 0 0 0)
+                    ]
+                    { onChange =
+                        String.toInt
+                            >> Maybe.map UseSeed
+                            >> Maybe.withDefault NoOp
+                    , text =
+                        model.song.seed
+                            |> String.fromInt
+                    , placeholder = Nothing
+                    , label = UiInput.labelHidden "type the seed"
+                    }
+                , Ui.el
+                    [ Ui.width Ui.fill
+                    , Ui.height (Ui.px 5)
+                    , Ui.centerY
+                    , UiBackground.color inputColor
+                    , UiBorder.rounded 5
+                    ]
+                    Ui.none
+                ]
+            ]
         , Ui.row
             [ UiFont.size 20
             , UiFont.color (Ui.rgba 1 1 1 0.6)
