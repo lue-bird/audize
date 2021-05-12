@@ -45,7 +45,7 @@ type alias Song =
     { tones : List Tone
     , duration : Int
     , name : String
-    , seed : Int
+    , seed : Maybe Int
     }
 
 
@@ -64,7 +64,7 @@ type alias Tone =
 
 init : ( Model, Cmd Msg )
 init =
-    ( { song = generateSong initialSongSeed
+    ( { song = generateSong (Just initialSongSeed)
       , playing = Stopped
       , time = 0
       }
@@ -115,7 +115,7 @@ update msg model =
 
         UseSeed seed ->
             ( { model
-                | song = generateSong (seed |> Maybe.withDefault initialSongSeed)
+                | song = generateSong seed
                 , time = 0
                 , playing = Playing
               }
@@ -148,7 +148,7 @@ type WordGroup
     | Other
 
 
-generateSong : Int -> Song
+generateSong : Maybe Int -> Song
 generateSong seed =
     let
         randomWord : Random.Generator String
@@ -210,7 +210,9 @@ generateSong seed =
             )
         |> (\generator ->
                 Random.step generator
-                    (Random.initialSeed seed)
+                    (Random.initialSeed
+                        (seed |> Maybe.withDefault initialSongSeed)
+                    )
                     |> Tuple.first
            )
 
@@ -233,6 +235,48 @@ view model =
             (ui model)
         ]
     }
+
+
+seedFromString : String -> Maybe Int
+seedFromString string =
+    case string of
+        "" ->
+            Nothing
+
+        nonEmpty ->
+            let
+                transformLetter char =
+                    if (char |> Char.toCode) > ('z' |> Char.toCode) then
+                        'z' |> Char.toCode
+
+                    else if (char |> Char.toCode) > ('z' |> Char.toCode) then
+                        'a' |> Char.toCode
+
+                    else
+                        char |> Char.toCode
+            in
+            nonEmpty
+                |> String.toLower
+                |> String.toList
+                |> List.indexedMap (\i ch -> transformLetter ch * 26 ^ i)
+                |> List.sum
+                |> Just
+
+
+seedToString : Maybe Int -> String
+seedToString seed =
+    case seed of
+        Just int ->
+            let
+                letters intData =
+                    Char.fromCode (Char.toCode 'a' + (intData |> modBy 26))
+                        :: letters (intData // 26)
+            in
+            letters int
+                |> String.fromList
+
+        Nothing ->
+            ""
 
 
 ui : Model -> Ui.Element Msg
@@ -273,18 +317,10 @@ ui model =
                     , UiBorder.color (Ui.rgba 0 0 0 0)
                     ]
                     { onChange =
-                        \string ->
-                            case string of
-                                "" ->
-                                    UseSeed Nothing
-
-                                nonEmpty ->
-                                    String.toInt nonEmpty
-                                        |> Maybe.map (Just >> UseSeed)
-                                        |> Maybe.withDefault NoOp
+                        seedFromString >> UseSeed
                     , text =
                         model.song.seed
-                            |> String.fromInt
+                            |> seedToString
                     , placeholder = Nothing
                     , label = UiInput.labelHidden "type the seed"
                     }
