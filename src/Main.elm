@@ -286,10 +286,10 @@ ui model =
                     }
                 , Ui.el
                     [ Ui.width Ui.fill
-                    , Ui.height (Ui.px 5)
+                    , Ui.height (Ui.px 2)
                     , Ui.centerY
                     , UiBackground.color inputColor
-                    , UiBorder.rounded 5
+                    , UiBorder.rounded 2
                     ]
                     Ui.none
                 ]
