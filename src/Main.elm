@@ -270,7 +270,7 @@ ui model =
             , Ui.column [ Ui.width Ui.fill ]
                 [ UiInput.text
                     [ UiFont.size 20
-                    , UiFont.color (Ui.rgba 1 1 1 0.6)
+                    , UiFont.color (Ui.rgba 1 1 1 1)
                     , UiBackground.color (Ui.rgba 0 0 0 0)
                     , UiBorder.color (Ui.rgba 0 0 0 0)
                     ]
