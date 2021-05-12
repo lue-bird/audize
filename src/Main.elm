@@ -64,14 +64,7 @@ type alias Tone =
 
 init : ( Model, Cmd Msg )
 init =
-    let
-        seedOfFirstSong =
-            0
-
-        firstSong =
-            generateSong seedOfFirstSong
-    in
-    ( { song = firstSong
+    ( { song = generateSong initialSongSeed
       , playing = Stopped
       , time = 0
       }
@@ -79,12 +72,17 @@ init =
     )
 
 
+initialSongSeed : Int
+initialSongSeed =
+    0
+
+
 type Msg
     = GenerateNewSong
     | Stop
     | Play
     | ToTime Int
-    | UseSeed Int
+    | UseSeed (Maybe Int)
     | NoOp
 
 
@@ -97,7 +95,7 @@ update msg model =
         GenerateNewSong ->
             ( model
             , Random.int Random.minInt Random.maxInt
-                |> Random.generate UseSeed
+                |> Random.generate (Just >> UseSeed)
             )
 
         Stop ->
@@ -117,7 +115,7 @@ update msg model =
 
         UseSeed seed ->
             ( { model
-                | song = generateSong seed
+                | song = generateSong (seed |> Maybe.withDefault initialSongSeed)
                 , time = 0
                 , playing = Playing
               }
@@ -275,9 +273,15 @@ ui model =
                     , UiBorder.color (Ui.rgba 0 0 0 0)
                     ]
                     { onChange =
-                        String.toInt
-                            >> Maybe.map UseSeed
-                            >> Maybe.withDefault NoOp
+                        \string ->
+                            case string of
+                                "" ->
+                                    UseSeed Nothing
+
+                                nonEmpty ->
+                                    String.toInt nonEmpty
+                                        |> Maybe.map (Just >> UseSeed)
+                                        |> Maybe.withDefault NoOp
                     , text =
                         model.song.seed
                             |> String.fromInt
