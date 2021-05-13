@@ -270,7 +270,13 @@ seedToString seed =
             let
                 letters intData =
                     Char.fromCode (Char.toCode 'a' + (intData |> modBy 26))
-                        :: letters (intData // 26)
+                        :: (case intData // 26 of
+                                0 ->
+                                    []
+
+                                stillMore ->
+                                    letters stillMore
+                           )
             in
             letters int
                 |> String.fromList
