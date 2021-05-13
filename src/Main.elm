@@ -258,7 +258,13 @@ seedFromString string =
             nonEmpty
                 |> String.toLower
                 |> String.toList
-                |> List.indexedMap (\i ch -> transformLetter ch * 26 ^ i)
+                |> List.indexedMap
+                    (\i ch ->
+                        transformLetter ch
+                            * (26
+                                ^ (String.length nonEmpty - i - 1)
+                              )
+                    )
                 |> List.sum
                 |> Just
 
