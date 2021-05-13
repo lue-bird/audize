@@ -248,13 +248,13 @@ seedFromString string =
         |> String.toList
         |> List.indexedMap
             (\i ch ->
-                betweenAAndZ (Char.toLower ch)
+                (betweenAAndZ (Char.toLower ch) + 1)
                     * (26 ^ i)
             )
         |> List.foldl
             (\chInt sum ->
-                if sum + chInt > 2 ^ 53 - 1 then
-                    2 ^ 53 - 1
+                if sum > 2 ^ 53 - 1 - chInt then
+                    sum
 
                 else
                     sum + chInt
@@ -264,21 +264,17 @@ seedFromString string =
 
 seedToString : Int -> String
 seedToString seed =
-    let
-        letter =
-            seed |> remainderBy 26
-    in
-    String.cons
-        (letter
-            + ('a' |> Char.toCode)
-            |> Char.fromCode
-        )
-        (if seed < 26 then
+    case seed of
+        0 ->
             ""
 
-         else
-            seedToString (seed // 26)
-        )
+        _ ->
+            String.cons
+                ((seed - 1 |> remainderBy 26)
+                    + ('a' |> Char.toCode)
+                    |> Char.fromCode
+                )
+                (seedToString (seed // 26))
 
 
 ui : Model -> Ui.Element Msg
