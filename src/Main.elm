@@ -1,4 +1,4 @@
-port module Main exposing (main)
+port module Main exposing (main, seedFromString, seedToString)
 
 {-| using [pd-andy/elm-web-audio](https://package.elm-lang.org/packages/pd-andy/elm-web-audio/latest/WebAudio-Program).
 -}
@@ -248,27 +248,37 @@ seedFromString string =
         |> String.toList
         |> List.indexedMap
             (\i ch ->
-                betweenAAndZ (Char.toLower ch) * (26 * i)
+                betweenAAndZ (Char.toLower ch)
+                    * (26 ^ i)
             )
-        |> List.sum
+        |> List.foldl
+            (\chInt sum ->
+                if sum + chInt > 2 ^ 53 - 1 then
+                    2 ^ 53 - 1
+
+                else
+                    sum + chInt
+            )
+            0
 
 
 seedToString : Int -> String
 seedToString seed =
-    if seed == 0 then
-        ""
+    let
+        letter =
+            seed |> remainderBy 26
+    in
+    String.cons
+        (letter
+            + ('a' |> Char.toCode)
+            |> Char.fromCode
+        )
+        (if seed < 26 then
+            ""
 
-    else
-        let
-            letter =
-                seed |> modBy 26
-        in
-        String.cons
-            (letter
-                + ('a' |> Char.toCode)
-                |> Char.fromCode
-            )
-            (seedToString (seed // 26))
+         else
+            seedToString (seed // 26)
+        )
 
 
 ui : Model -> Ui.Element Msg
