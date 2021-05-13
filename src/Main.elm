@@ -245,18 +245,17 @@ seedFromString string =
                 |> max 0
     in
     string
-        |> String.toLower
         |> String.toList
         |> List.indexedMap
             (\i ch ->
-                betweenAAndZ ch + (26 * i)
+                betweenAAndZ (Char.toLower ch) * (26 * i)
             )
         |> List.sum
 
 
 seedToString : Int -> String
 seedToString seed =
-    if seed <= 0 then
+    if seed == 0 then
         ""
 
     else
@@ -269,7 +268,7 @@ seedToString seed =
                 + ('a' |> Char.toCode)
                 |> Char.fromCode
             )
-            (seedToString (seed - 26))
+            (seedToString (seed // 26))
 
 
 ui : Model -> Ui.Element Msg
