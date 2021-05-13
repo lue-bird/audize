@@ -245,23 +245,18 @@ seedFromString string =
 
         nonEmpty ->
             let
-                transformLetter char =
-                    if (char |> Char.toCode) > ('z' |> Char.toCode) then
-                        'z' |> Char.toCode
-
-                    else if (char |> Char.toCode) > ('z' |> Char.toCode) then
-                        'a' |> Char.toCode
-
-                    else
-                        char |> Char.toCode
+                betweenAAndZ char =
+                    (char |> Char.toCode)
+                        - ('a' |> Char.toCode)
+                        |> min 26
+                        |> max 0
             in
             nonEmpty
                 |> String.toLower
                 |> String.toList
                 |> List.indexedMap
                     (\i ch ->
-                        transformLetter ch
-                            + (26 * i)
+                        betweenAAndZ ch + (26 * i)
                     )
                 |> List.sum
                 |> Just
