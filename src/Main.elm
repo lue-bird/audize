@@ -261,9 +261,7 @@ seedFromString string =
                 |> List.indexedMap
                     (\i ch ->
                         transformLetter ch
-                            * (26
-                                * (String.length nonEmpty - i - 1)
-                              )
+                            + (26 * i)
                     )
                 |> List.sum
                 |> Just
