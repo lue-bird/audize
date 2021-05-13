@@ -262,7 +262,7 @@ seedFromString string =
                     (\i ch ->
                         transformLetter ch
                             * (26
-                                ^ (String.length nonEmpty - i - 1)
+                                * (String.length nonEmpty - i - 1)
                               )
                     )
                 |> List.sum
