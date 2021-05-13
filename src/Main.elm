@@ -45,7 +45,7 @@ type alias Song =
     { tones : List Tone
     , duration : Int
     , name : String
-    , seed : Maybe Int
+    , seed : Int
     }
 
 
@@ -64,7 +64,7 @@ type alias Tone =
 
 init : ( Model, Cmd Msg )
 init =
-    ( { song = generateSong (Just initialSongSeed)
+    ( { song = generateSong initialSongSeed
       , playing = Stopped
       , time = 0
       }
@@ -82,7 +82,7 @@ type Msg
     | Stop
     | Play
     | ToTime Int
-    | UseSeed (Maybe Int)
+    | UseSeed Int
     | NoOp
 
 
@@ -95,7 +95,7 @@ update msg model =
         GenerateNewSong ->
             ( model
             , Random.int Random.minInt Random.maxInt
-                |> Random.generate (Just >> UseSeed)
+                |> Random.generate UseSeed
             )
 
         Stop ->
@@ -148,7 +148,7 @@ type WordGroup
     | Other
 
 
-generateSong : Maybe Int -> Song
+generateSong : Int -> Song
 generateSong seed =
     let
         randomWord : Random.Generator String
@@ -210,9 +210,7 @@ generateSong seed =
             )
         |> (\generator ->
                 Random.step generator
-                    (Random.initialSeed
-                        (seed |> Maybe.withDefault initialSongSeed)
-                    )
+                    (Random.initialSeed seed)
                     |> Tuple.first
            )
 
@@ -237,51 +235,41 @@ view model =
     }
 
 
-seedFromString : String -> Maybe Int
+seedFromString : String -> Int
 seedFromString string =
-    case string of
-        "" ->
-            Nothing
-
-        nonEmpty ->
-            let
-                betweenAAndZ char =
-                    (char |> Char.toCode)
-                        - ('a' |> Char.toCode)
-                        |> min 26
-                        |> max 0
-            in
-            nonEmpty
-                |> String.toLower
-                |> String.toList
-                |> List.indexedMap
-                    (\i ch ->
-                        betweenAAndZ ch + (26 * i)
-                    )
-                |> List.sum
-                |> Just
+    let
+        betweenAAndZ char =
+            (char |> Char.toCode)
+                - ('a' |> Char.toCode)
+                |> min 26
+                |> max 0
+    in
+    string
+        |> String.toLower
+        |> String.toList
+        |> List.indexedMap
+            (\i ch ->
+                betweenAAndZ ch + (26 * i)
+            )
+        |> List.sum
 
 
-seedToString : Maybe Int -> String
+seedToString : Int -> String
 seedToString seed =
-    case seed of
-        Just int ->
-            let
-                letters intData =
-                    Char.fromCode (Char.toCode 'a' + (intData |> modBy 26))
-                        :: (case intData // 26 of
-                                0 ->
-                                    []
+    if seed <= 0 then
+        ""
 
-                                stillMore ->
-                                    letters stillMore
-                           )
-            in
-            letters int
-                |> String.fromList
-
-        Nothing ->
-            ""
+    else
+        let
+            letter =
+                seed |> modBy 26
+        in
+        String.cons
+            (letter
+                + ('a' |> Char.toCode)
+                |> Char.fromCode
+            )
+            (seedToString (seed - 26))
 
 
 ui : Model -> Ui.Element Msg
